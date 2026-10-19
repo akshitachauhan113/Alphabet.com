@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A to Z Flash Cards</title>
+<style>
+  :root {
+    --bg1: #ffe29f;
+    --bg2: #ffa99f;
+    --accent: #ff6b6b;
+    --card: #ffffff;
+    --ink: #2b2b3c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    background-size: 200% 200%;
+    animation: bgShift 14s ease infinite;
+    color: var(--ink);
+    transition: background 0.6s ease;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  @keyframes bgShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  h1 {
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  /* ---------- card ---------- */
+  .stage {
+    perspective: 1200px;
+    width: min(92vw, 420px);
+    height: min(62vh, 430px);
+  }
+
+  .card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(.2,.8,.2,1);
+    cursor: pointer;
+  }
+
+  .card.flipped { transform: rotateY(180deg); }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    background: var(--card);
+    border-radius: 28px;
+    box-shadow: 0 22px 45px rgba(0,0,0,0.22);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .face.back { transform: rotateY(180deg); }
+
+  .emoji {
+    font-size: clamp(78px, 20vw, 132px);
+    line-height: 1;
+    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.16));
+    animation: pop 0.45s ease;
+  }
+
+  .letters {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .cap { font-size: clamp(76px, 20vw, 128px); color: var(--accent); }
+  .small { font-size: clamp(44px, 11vw, 72px); color: var(--ink); opacity: 0.85; }
+
+  .word {
+    font-size: clamp(1.1rem, 4vw, 1.55rem);
+    font-weight: 600;
+    letter-spacing: 1px;
+    opacity: 0.9;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 14px;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    opacity: 0.35;
+    text-transform: uppercase;
+  }
+
+  .back .letters { flex-direction: column; gap: 2px; }
+  .back .cap { color: var(--ink); }
+  .back .small { color: var(--accent); }
+
+  @keyframes pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    70%  { transform: scale(1.08); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .bounce { animation: bounce 0.4s ease; }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  /* ---------- controls ---------- */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .arrow {
+    width: 62px;
+    height: 62px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--accent);
+    font-size: 1.7rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.2);
+    transition: transform 0.15s ease, background 0.2s ease;
+    display: grid;
+    place-items: center;
+  }
+
+  .arrow:hover { transform: translateY(-3px) scale(1.06); background: var(--accent); color: #fff; }
+  .arrow:active { transform: scale(0.94); }
+
+  .counter {
+    min-width: 96px;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.55);
+    padding: 10px 16px;
+    border-radius: 999px;
+    letter-spacing: 2px;
+  }
+
+  .bar {
+    width: min(88vw, 420px);
+    height: 6px;
+    background: rgba(255,255,255,0.45);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar > span {
+    display: block;
+    height: 100%;
+    width: 4%;
+    background: #fff;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+  }
+
+  .tools {
+    display: flex;
+    gap: 10px;
+  }
+
+  .chip {
+    border: none;
+    background: rgba(255,255,255,0.55);
+    color: var(--ink);
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+
+  .chip:hover { background: #fff; transform: translateY(-2px); }
+
+  @media (max-height: 620px) {
+    .stage { height: min(58vh, 330px); }
+    h1 { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <h1>A to Z Flash Cards</h1>
+
+  <div class="stage">
+    <div class="card" id="card" title="Click to flip">
+      <div class="face front">
+        <div class="emoji" id="emoji">🐜</div>
+        <div class="letters">
+          <span class="cap" id="capFront">A</span>
+          <span class="small" id="smallFront">a</span>
+        </div>
+        <div class="word" id="word">Ant</div>
+        <div class="hint">tap card to flip</div>
+      </div>
+
+      <div class="face back">
+        <div class="letters">
+          <span class="cap" id="capBack">A</span>
+          <span class="small" id="smallBack">a</span>
+        </div>
+        <div class="word" id="soundWord">"A" for Ant</div>
+        <div class="emoji" id="emojiBack" style="font-size: clamp(56px,14vw,92px)">🐜</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="arrow" id="prev" aria-label="Previous">&#8592;</button>
+    <div class="counter" id="counter">A / Z</div>
+    <button class="arrow" id="next" aria-label="Next">&#8594;</button>
+  </div>
+
+  <div class="bar"><span id="progress"></span></div>
+
+  <div class="tools">
+    <button class="chip" id="speak">&#128266; Say it</button>
+    <button class="chip" id="random">&#127922; Random</button>
+  </div>
+
+<script>
+  const CARDS = [
+    { l: "A", w: "Ant",        e: "\u{1F41C}" },
+    { l: "B", w: "Bubbles",    e: "\u{1FAE7}" },
+    { l: "C", w: "Compass",    e: "\u{1F9ED}" },
+    { l: "D", w: "Dinosaur",   e: "\u{1F995}" },
+    { l: "E", w: "Eagle",      e: "\u{1F985}" },
+    { l: "F", w: "Fox",        e: "\u{1F98A}" },
+    { l: "G", w: "Giraffe",    e: "\u{1F992}" },
+    { l: "H", w: "Hedgehog",   e: "\u{1F994}" },
+    { l: "I", w: "Ice Cube",   e: "\u{1F9CA}" },
+    { l: "J", w: "Jar",        e: "\u{1FAD9}" },
+    { l: "K", w: "Kangaroo",   e: "\u{1F998}" },
+    { l: "L", w: "Lion",       e: "\u{1F981}" },
+    { l: "M", w: "Mushroom",   e: "\u{1F344}" },
+    { l: "N", w: "Nest",       e: "\u{1FABA}" },
+    { l: "O", w: "Octopus",    e: "\u{1F419}" },
+    { l: "P", w: "Penguin",    e: "\u{1F427}" },
+    { l: "Q", w: "Queen",      e: "\u{1F478}" },
+    { l: "R", w: "Rainbow",    e: "\u{1F308}" },
+    { l: "S", w: "Snake",      e: "\u{1F40D}" },
+    { l: "T", w: "Turtle",     e: "\u{1F422}" },
+    { l: "U", w: "Unicorn",    e: "\u{1F984}" },
+    { l: "V", w: "Volcano",    e: "\u{1F30B}" },
+    { l: "W", w: "Whale",      e: "\u{1F40B}" },
+    { l: "X", w: "X-Ray",      e: "\u{1FA7B}" },
+    { l: "Y", w: "Yo-Yo",      e: "\u{1F380}" },
+    { l: "Z", w: "Zebra",      e: "\u{1F993}" }
+  ];
+
+  const THEMES = [
+    ["#ffe29f", "#ffa99f", "#ff6b6b"],
+    ["#a1c4fd", "#c2e9fb", "#3f8efc"],
+    ["#84fab0", "#8fd3f4", "#12b886"],
+    ["#fddb92", "#d1fdff", "#f7797d"],
+    ["#e0c3fc", "#8ec5fc", "#9b5de5"],
+    ["#f6d365", "#fda085", "#ff7e5f"],
+    ["#d4fc79", "#96e6a1", "#37b24d"],
+    ["#fbc2eb", "#a6c1ee", "#e55039"]
+  ];
+
+  const card     = document.getElementById("card");
+  const emojiEl  = document.getElementById("emoji");
+  const emojiBk  = document.getElementById("emojiBack");
+  const capF     = document.getElementById("capFront");
+  const smallF   = document.getElementById("smallFront");
+  const capB     = document.getElementById("capBack");
+  const smallB   = document.getElementById("smallBack");
+  const wordEl   = document.getElementById("word");
+  const soundW   = document.getElementById("soundWord");
+  const counter  = document.getElementById("counter");
+  const progress = document.getElementById("progress");
+
+  let i = 0;
+
+  function render() {
+    const c = CARDS[i];
+    const t = THEMES[i % THEMES.length];
+
+    emojiEl.textContent = c.e;
+    emojiBk.textContent = c.e;
+    capF.textContent    = c.l;
+    smallF.textContent  = c.l.toLowerCase();
+    capB.textContent    = c.l;
+    smallB.textContent  = c.l.toLowerCase();
+    wordEl.textContent  = c.w;
+    soundW.textContent  = c.l + " \u201C" + c.l + "\u201D for " + c.w;
+    counter.textContent = c.l + " / Z";
+    progress.style.width = ((i + 1) / CARDS.length * 100) + "%";
+
+    document.documentElement.style.setProperty("--bg1", t[0]);
+    document.documentElement.style.setProperty("--bg2", t[1]);
+    document.documentElement.style.setProperty("--accent", t[2]);
+
+    // restart pop animation
+    emojiEl.style.animation = "none";
+    void emojiEl.offsetWidth;
+    emojiEl.style.animation = "";
+  }
+
+  function go(step) {
+    i = (i + step + CARDS.length) % CARDS.length;
+    card.classList.remove("flipped");
+    card.classList.add("bounce");
+    setTimeout(() => card.classList.remove("bounce"), 400);
+    setTimeout(render, 120);
+  }
+
+  document.getElementById("next").onclick = () => go(1);
+  document.getElementById("prev").onclick = () => go(-1);
+  card.onclick = () => card.classList.toggle("flipped");
+
+  document.getElementById("random").onclick = () => {
+    let n;
+    do { n = Math.floor(Math.random() * CARDS.length); } while (n === i);
+    i = n;
+    card.classList.remove("flipped");
+    render();
+  };
+
+  document.getElementById("speak").onclick = () => {
+    if (!("speechSynthesis" in window)) return;
+    const c = CARDS[i];
+    const u = new SpeechSynthesisUtterance(c.l + ". " + c.l + " for " + c.w);
+    u.rate = 0.85;
+    u.pitch = 1.1;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  };
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") go(1);
+    if (e.key === "ArrowLeft")  go(-1);
+    if (e.key === " ") { e.preventDefault(); card.classList.toggle("flipped"); }
+  });
+
+  // swipe support for mobile
+  let startX = null;
+  document.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+    startX = null;
+  }, { passive: true });
+
+  render();
+</script>
+</body>
+</html>
