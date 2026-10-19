@@ -119,6 +119,25 @@
     text-transform: uppercase;
   }
 
+  .dots {
+    display: flex;
+    gap: 7px;
+    margin-top: 2px;
+  }
+
+  .dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #d9d9e3;
+    transition: background 0.25s ease, transform 0.25s ease;
+  }
+
+  .dots i.on {
+    background: var(--accent);
+    transform: scale(1.25);
+  }
+
   .back .letters { flex-direction: column; gap: 2px; }
   .back .cap { color: var(--ink); }
   .back .small { color: var(--accent); }
@@ -228,6 +247,7 @@
           <span class="small" id="smallFront">a</span>
         </div>
         <div class="word" id="word">Ant</div>
+        <div class="dots" id="dots"></div>
         <div class="hint">tap card to flip</div>
       </div>
 
@@ -251,38 +271,39 @@
   <div class="bar"><span id="progress"></span></div>
 
   <div class="tools">
+    <button class="chip" id="nextWord">&#128260; Next word</button>
     <button class="chip" id="speak">&#128266; Say it</button>
     <button class="chip" id="random">&#127922; Random</button>
   </div>
 
 <script>
   const CARDS = [
-    { l: "A", w: "Ant",        e: "\u{1F41C}" },
-    { l: "B", w: "Bubbles",    e: "\u{1FAE7}" },
-    { l: "C", w: "Compass",    e: "\u{1F9ED}" },
-    { l: "D", w: "Dinosaur",   e: "\u{1F995}" },
-    { l: "E", w: "Eagle",      e: "\u{1F985}" },
-    { l: "F", w: "Fox",        e: "\u{1F98A}" },
-    { l: "G", w: "Giraffe",    e: "\u{1F992}" },
-    { l: "H", w: "Hedgehog",   e: "\u{1F994}" },
-    { l: "I", w: "Ice Cube",   e: "\u{1F9CA}" },
-    { l: "J", w: "Jar",        e: "\u{1FAD9}" },
-    { l: "K", w: "Kangaroo",   e: "\u{1F998}" },
-    { l: "L", w: "Lion",       e: "\u{1F981}" },
-    { l: "M", w: "Mushroom",   e: "\u{1F344}" },
-    { l: "N", w: "Nest",       e: "\u{1FABA}" },
-    { l: "O", w: "Octopus",    e: "\u{1F419}" },
-    { l: "P", w: "Penguin",    e: "\u{1F427}" },
-    { l: "Q", w: "Queen",      e: "\u{1F478}" },
-    { l: "R", w: "Rainbow",    e: "\u{1F308}" },
-    { l: "S", w: "Snake",      e: "\u{1F40D}" },
-    { l: "T", w: "Turtle",     e: "\u{1F422}" },
-    { l: "U", w: "Unicorn",    e: "\u{1F984}" },
-    { l: "V", w: "Volcano",    e: "\u{1F30B}" },
-    { l: "W", w: "Whale",      e: "\u{1F40B}" },
-    { l: "X", w: "X-Ray",      e: "\u{1FA7B}" },
-    { l: "Y", w: "Yo-Yo",      e: "\u{1F380}" },
-    { l: "Z", w: "Zebra",      e: "\u{1F993}" }
+    { l: "A", words: [ {w:"Ant",e:"\u{1F41C}"}, {w:"Anchor",e:"\u2693"}, {w:"Axe",e:"\u{1FA93}"} ] },
+    { l: "B", words: [ {w:"Bubbles",e:"\u{1FAE7}"}, {w:"Bread",e:"\u{1F35E}"}, {w:"Balloon",e:"\u{1F388}"} ] },
+    { l: "C", words: [ {w:"Compass",e:"\u{1F9ED}"}, {w:"Candle",e:"\u{1F56F}"}, {w:"Curling",e:"\u{1F94C}"} ] },
+    { l: "D", words: [ {w:"Dinosaur",e:"\u{1F995}"}, {w:"Diamond",e:"\u{1F48E}"}, {w:"Drum",e:"\u{1F941}"} ] },
+    { l: "E", words: [ {w:"Eagle",e:"\u{1F985}"}, {w:"Eggplant",e:"\u{1F346}"}, {w:"Envelope",e:"\u2709"} ] },
+    { l: "F", words: [ {w:"Fox",e:"\u{1F98A}"}, {w:"Feather",e:"\u{1FAB6}"}, {w:"Hand Fan",e:"\u{1FAAD}"} ] },
+    { l: "G", words: [ {w:"Giraffe",e:"\u{1F992}"}, {w:"Grapes",e:"\u{1F347}"}, {w:"Guitar",e:"\u{1F3B8}"} ] },
+    { l: "H", words: [ {w:"Hedgehog",e:"\u{1F994}"}, {w:"Hammer",e:"\u{1F528}"}, {w:"Helmet",e:"\u26D4"} ] },
+    { l: "I", words: [ {w:"Ice Cube",e:"\u{1F9CA}"}, {w:"Island",e:"\u{1F3DD}"}, {w:"Ink",e:"\u{1F58B}"} ] },
+    { l: "J", words: [ {w:"Jar",e:"\u{1FAD9}"}, {w:"Jellyfish",e:"\u{1FABC}"}, {w:"Juice",e:"\u{1F9C3}"} ] },
+    { l: "K", words: [ {w:"Kangaroo",e:"\u{1F998}"}, {w:"Kite",e:"\u{1FA81}"}, {w:"Key",e:"\u{1F511}"} ] },
+    { l: "L", words: [ {w:"Lion",e:"\u{1F981}"}, {w:"Ladder",e:"\u{1FA9E}"}, {w:"Lamp",e:"\u{1F4A1}"} ] },
+    { l: "M", words: [ {w:"Mushroom",e:"\u{1F344}"}, {w:"Magnet",e:"\u{1F9F2}"}, {w:"Moon",e:"\u{1F319}"} ] },
+    { l: "N", words: [ {w:"Nest",e:"\u{1FABA}"}, {w:"Needle",e:"\u{1FAA1}"}, {w:"Notebook",e:"\u{1F4D3}"} ] },
+    { l: "O", words: [ {w:"Octopus",e:"\u{1F419}"}, {w:"Orange",e:"\u{1F34A}"}, {w:"Olive",e:"\u{1FAD2}"} ] },
+    { l: "P", words: [ {w:"Penguin",e:"\u{1F427}"}, {w:"Pizza",e:"\u{1F355}"}, {w:"Piano",e:"\u{1F3B9}"} ] },
+    { l: "Q", words: [ {w:"Queen",e:"\u{1F478}"}, {w:"Question",e:"\u2753"}, {w:"Quiet",e:"\u{1F92B}"} ] },
+    { l: "R", words: [ {w:"Rainbow",e:"\u{1F308}"}, {w:"Rocket",e:"\u{1F680}"}, {w:"Ruler",e:"\u{1F4CF}"} ] },
+    { l: "S", words: [ {w:"Snake",e:"\u{1F40D}"}, {w:"Star",e:"\u2B50"}, {w:"Spoon",e:"\u{1F944}"} ] },
+    { l: "T", words: [ {w:"Turtle",e:"\u{1F422}"}, {w:"Telescope",e:"\u{1F52D}"}, {w:"Tent",e:"\u26FA"} ] },
+    { l: "U", words: [ {w:"Unicorn",e:"\u{1F984}"}, {w:"Umbrella",e:"\u2602"}, {w:"UFO",e:"\u{1F6F8}"} ] },
+    { l: "V", words: [ {w:"Volcano",e:"\u{1F30B}"}, {w:"Violin",e:"\u{1F3BB}"}, {w:"Van",e:"\u{1F690}"} ] },
+    { l: "W", words: [ {w:"Whale",e:"\u{1F40B}"}, {w:"Watch",e:"\u231A"}, {w:"Window",e:"\u{1FA9F}"} ] },
+    { l: "X", words: [ {w:"X-Ray",e:"\u{1FA7B}"}, {w:"Xylophone",e:"\u{1F3BC}"}, {w:"X-mas Tree",e:"\u{1F384}"} ] },
+    { l: "Y", words: [ {w:"Yo-Yo",e:"\u{1F380}"}, {w:"Yacht",e:"\u26F5"}, {w:"Yarn",e:"\u{1F9F6}"} ] },
+    { l: "Z", words: [ {w:"Zebra",e:"\u{1F993}"}, {w:"Zipper",e:"\u{1F90F}"}, {w:"Zero",e:"0\uFE0F\u20E3"} ] }
   ];
 
   const THEMES = [
@@ -307,23 +328,31 @@
   const soundW   = document.getElementById("soundWord");
   const counter  = document.getElementById("counter");
   const progress = document.getElementById("progress");
+  const dotsEl   = document.getElementById("dots");
 
-  let i = 0;
+  let i  = 0;   // letter index
+  let wi = 0;   // word index for current letter
 
   function render() {
     const c = CARDS[i];
+    const d = c.words[wi];
     const t = THEMES[i % THEMES.length];
 
-    emojiEl.textContent = c.e;
-    emojiBk.textContent = c.e;
+    emojiEl.textContent = d.e;
+    emojiBk.textContent = d.e;
     capF.textContent    = c.l;
     smallF.textContent  = c.l.toLowerCase();
     capB.textContent    = c.l;
     smallB.textContent  = c.l.toLowerCase();
-    wordEl.textContent  = c.w;
-    soundW.textContent  = c.l + " \u201C" + c.l + "\u201D for " + c.w;
+    wordEl.textContent  = d.w;
+    soundW.textContent  = c.l + " \u201C" + c.l + "\u201D for " + d.w;
     counter.textContent = c.l + " / Z";
     progress.style.width = ((i + 1) / CARDS.length * 100) + "%";
+
+    // word indicator dots (one per word for this letter)
+    dotsEl.innerHTML = c.words.map((_, k) =>
+      '<i class="' + (k === wi ? "on" : "") + '"></i>'
+    ).join("");
 
     document.documentElement.style.setProperty("--bg1", t[0]);
     document.documentElement.style.setProperty("--bg2", t[1]);
@@ -337,20 +366,32 @@
 
   function go(step) {
     i = (i + step + CARDS.length) % CARDS.length;
+    wi = 0;
     card.classList.remove("flipped");
     card.classList.add("bounce");
     setTimeout(() => card.classList.remove("bounce"), 400);
     setTimeout(render, 120);
   }
 
+  function nextWord() {
+    const c = CARDS[i];
+    wi = (wi + 1) % c.words.length;
+    card.classList.add("bounce");
+    setTimeout(() => card.classList.remove("bounce"), 400);
+    render();
+  }
+
   document.getElementById("next").onclick = () => go(1);
   document.getElementById("prev").onclick = () => go(-1);
   card.onclick = () => card.classList.toggle("flipped");
+
+  document.getElementById("nextWord").onclick = nextWord;
 
   document.getElementById("random").onclick = () => {
     let n;
     do { n = Math.floor(Math.random() * CARDS.length); } while (n === i);
     i = n;
+    wi = Math.floor(Math.random() * CARDS[n].words.length);
     card.classList.remove("flipped");
     render();
   };
@@ -358,7 +399,8 @@
   document.getElementById("speak").onclick = () => {
     if (!("speechSynthesis" in window)) return;
     const c = CARDS[i];
-    const u = new SpeechSynthesisUtterance(c.l + ". " + c.l + " for " + c.w);
+    const d = c.words[wi];
+    const u = new SpeechSynthesisUtterance(c.l + ". " + c.l + " for " + d.w);
     u.rate = 0.85;
     u.pitch = 1.1;
     speechSynthesis.cancel();
@@ -368,6 +410,7 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight") go(1);
     if (e.key === "ArrowLeft")  go(-1);
+    if (e.key === "ArrowDown" || e.key === "n" || e.key === "N") nextWord();
     if (e.key === " ") { e.preventDefault(); card.classList.toggle("flipped"); }
   });
 
