@@ -227,6 +227,89 @@
   }
 
   .chip:hover { background: #fff; transform: translateY(-2px); }
+  .chip.active { background: var(--accent); color: #fff; }
+
+  .tools { flex-wrap: wrap; justify-content: center; }
+
+  /* ---------- voice picker ---------- */
+  .voicePanel {
+    position: fixed;
+    left: 50%;
+    bottom: 76px;
+    transform: translateX(-50%);
+    width: min(92vw, 350px);
+    max-height: 48vh;
+    background: rgba(255,255,255,0.97);
+    border-radius: 22px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.3);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    z-index: 30;
+    animation: vpIn 0.18s ease;
+  }
+
+  .voicePanel[hidden] { display: none; }
+
+  @keyframes vpIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  .vpHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .vpHead button {
+    border: none;
+    background: #f0f0f5;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--ink);
+  }
+
+  .vpHead button:hover { background: var(--accent); color: #fff; }
+
+  .vpHint { font-size: 0.7rem; opacity: 0.55; letter-spacing: 0.3px; }
+
+  .vpList {
+    list-style: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 4px;
+    margin: 0;
+  }
+
+  .vpList li {
+    padding: 9px 12px;
+    border-radius: 13px;
+    background: #f4f4f9;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink);
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+
+  .vpList li:hover { background: #e9e9f4; transform: translateX(3px); }
+  .vpList li.on { background: var(--accent); color: #fff; }
+  .vpList li.on .lang { color: rgba(255,255,255,0.85); }
+  .vpList .lang { font-size: 0.68rem; font-weight: 600; opacity: 0.6; white-space: nowrap; }
 
   @media (max-height: 620px) {
     .stage { height: min(58vh, 330px); }
@@ -273,7 +356,17 @@
   <div class="tools">
     <button class="chip" id="nextWord">&#128260; Next word</button>
     <button class="chip" id="speak">&#128266; Say it</button>
+    <button class="chip" id="voiceBtn" title="Choose a voice">&#127908; <span id="voiceLabel">Voice</span></button>
     <button class="chip" id="random">&#127922; Random</button>
+  </div>
+
+  <div class="voicePanel" id="voicePanel" hidden>
+    <div class="vpHead">
+      <span>&#127908; Choose your voice</span>
+      <button id="voiceClose" aria-label="Close">&#10005;</button>
+    </div>
+    <div class="vpHint">Tap any voice to hear a preview &mdash; your choice is saved.</div>
+    <ul class="vpList" id="voiceList"></ul>
   </div>
 
 <script>
@@ -396,16 +489,144 @@
     render();
   };
 
-  document.getElementById("speak").onclick = () => {
-    if (!("speechSynthesis" in window)) return;
+  /* ---------------- voice assistant ---------------- */
+  const synth = window.speechSynthesis || null;
+  const BASE = { rate: 0.92, pitch: 1.05 };
+  let VOICES = [];
+  let chosenVoice = "";
+  let speakToken = 0;
+
+  try { chosenVoice = localStorage.getItem("az.voice") || ""; } catch (e) {}
+
+  // rank voices: English first, then the ones that actually sound human
+  function scoreVoice(v) {
+    const n = (v.name || "").toLowerCase();
+    const lang = (v.lang || "").toLowerCase();
+    let s = lang.indexOf("en") === 0 ? 100 : -100;
+    if (lang === "en-us" || lang === "en-gb" || lang === "en-in") s += 10;
+    if (/natural|neural|premium|enhanced|online|google|aria|jenny|guy|ava|andrew|emma|ryan|samantha|karen|moira|serena|libby/.test(n)) s += 40;
+    if (/zira|david|hazel|mark|compact|desktop|espeak|robot|unitron|fred|heami/.test(n)) s -= 30;
+    if (v.localService === false) s += 15;   // cloud voices are usually smoother
+    if (v.default) s += 5;
+    return s;
+  }
+
+  function refreshVoices() {
+    if (!synth) return;
+    const list = synth.getVoices() || [];
+    if (!list.length) return;
+    VOICES = Array.from(list).sort((a, b) => scoreVoice(b) - scoreVoice(a));
+    buildVoiceList();
+  }
+
+  function activeVoice() {
+    if (!VOICES.length) return null;
+    const saved = VOICES.find(v => v.voiceURI === chosenVoice);
+    if (saved) return saved;
+    return VOICES.find(v => (v.lang || "").toLowerCase().indexOf("en") === 0) || VOICES[0];
+  }
+
+  // speaks each chunk separately with a breathing pause -> feels human, not robotic
+  function speakParts(parts, gap) {
+    if (!synth) return;
+    synth.cancel();
+    const token = ++speakToken;
+    let k = 0;
+    const step = () => {
+      if (token !== speakToken || k >= parts.length) return;
+      const p = parts[k++];
+      const u = new SpeechSynthesisUtterance(p.text);
+      const v = activeVoice();
+      if (v) u.voice = v;
+      u.lang = (v && v.lang) || "en-US";
+      u.rate = p.rate != null ? p.rate : BASE.rate;
+      u.pitch = p.pitch != null ? p.pitch : BASE.pitch;
+      u.volume = 1;
+      u.onend = () => setTimeout(step, gap);
+      u.onerror = () => setTimeout(step, gap);
+      synth.speak(u);
+    };
+    setTimeout(step, 90);  // Chrome drops speech if you speak right after cancel()
+  }
+
+  function sayCard() {
     const c = CARDS[i];
     const d = c.words[wi];
-    const u = new SpeechSynthesisUtterance(c.l + ". " + c.l + " for " + d.w);
-    u.rate = 0.85;
-    u.pitch = 1.1;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+    const wob = (Math.random() - 0.5) * 0.12;   // tiny pitch wobble = not machine-like
+    speakParts([
+      { text: c.l + ".",                    rate: 0.75, pitch: 1.20 + wob },
+      { text: c.l + " for " + d.w + "!",    rate: 0.90, pitch: 1.03 + wob }
+    ], 320);
+  }
+
+  const voiceBtn   = document.getElementById("voiceBtn");
+  const voicePanel = document.getElementById("voicePanel");
+  const voiceList  = document.getElementById("voiceList");
+  const voiceLabel = document.getElementById("voiceLabel");
+
+  const esc = s => String(s).replace(/[&<>"']/g, m =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+
+  function buildVoiceList() {
+    if (!voiceList) return;
+    const cur = activeVoice();
+    const auto = '<li data-uri="" class="' + (chosenVoice ? "" : "on") + '">' +
+                 '<span>&#10024; Auto &mdash; best voice</span><span class="lang">auto</span></li>';
+    const items = VOICES.map(v => {
+      const on = cur && v.voiceURI === cur.voiceURI;
+      return '<li data-uri="' + esc(v.voiceURI) + '" class="' + (on ? "on" : "") + '">' +
+             "<span>" + esc(v.name) + '</span><span class="lang">' + esc(v.lang) + "</span></li>";
+    }).join("");
+    voiceList.innerHTML = auto + items;
+    updateVoiceLabel();
+  }
+
+  function updateVoiceLabel() {
+    const v = activeVoice();
+    if (!voiceLabel) return;
+    if (!v) { voiceLabel.textContent = "Voice"; return; }
+    let n = v.name.replace(/^(Microsoft|Google|Apple)\s+/i, "").split(/[ (]/)[0];
+    if (n.length > 11) n = n.slice(0, 10) + "\u2026";
+    voiceLabel.textContent = n;
+    voiceBtn.title = "Voice: " + v.name + " (" + v.lang + ")";
+  }
+
+  if (synth) {
+    synth.onvoiceschanged = refreshVoices;
+    refreshVoices();
+    setTimeout(refreshVoices, 400);    // some browsers load voices late
+    setTimeout(refreshVoices, 1500);
+  }
+
+  document.getElementById("speak").onclick = sayCard;
+
+  voiceBtn.onclick = () => {
+    voicePanel.hidden = !voicePanel.hidden;
+    voiceBtn.classList.toggle("active", !voicePanel.hidden);
   };
+
+  document.getElementById("voiceClose").onclick = () => {
+    voicePanel.hidden = true;
+    voiceBtn.classList.remove("active");
+  };
+
+  voiceList.onclick = (e) => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    chosenVoice = li.dataset.uri || "";
+    try { localStorage.setItem("az.voice", chosenVoice); } catch (err) {}
+    buildVoiceList();
+    // preview so the change is heard immediately
+    speakParts([{ text: "Hello! I am your A to Z friend.", rate: 0.92, pitch: 1.12 }], 120);
+  };
+
+  document.addEventListener("pointerdown", (e) => {
+    if (voicePanel.hidden) return;
+    if (!voicePanel.contains(e.target) && !voiceBtn.contains(e.target)) {
+      voicePanel.hidden = true;
+      voiceBtn.classList.remove("active");
+    }
+  });
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight") go(1);
